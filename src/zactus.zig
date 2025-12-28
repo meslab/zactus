@@ -2,24 +2,23 @@ const std = @import("std");
 const net = std.net;
 const mem = std.mem;
 const process = std.process;
+const posix = std.posix;
 
 pub fn request_handler(
-    connection: net.Server.Connection,
+    connection: i32,
     allocator: mem.Allocator,
 ) void {
-    defer connection.stream.close();
+    defer posix.close(connection);
 
-    const handle = connection.stream.handle;
+    const handle = connection;
 
     var buffer: [1024]u8 = undefined;
 
-    var conn_reader: net.Stream.Reader = connection.stream.reader(&buffer);
-    var conn_writer: net.Stream.Writer = connection.stream.writer(&.{});
-
-    _ = conn_reader.interface().takeDelimiterInclusive('\n') catch |err| {
-        std.log.err("Worker {d}: Request read failed: {s}", .{ handle, @errorName(err) });
+    const read = posix.read(connection, &buffer) catch 0;
+    if (read == 0) {
+        // closed = true;
         return;
-    };
+    }
 
     std.log.info("Worker {d}: Handled incoming request.", .{handle});
 
@@ -40,8 +39,12 @@ pub fn request_handler(
     ) catch @panic("OOM: response header");
     defer allocator.free(response_header);
 
-    conn_writer.interface.writeAll(response_header) catch {};
-    conn_writer.interface.writeAll(response_body) catch {};
+    _ = posix.write(connection, response_header) catch |err| {
+        std.log.err("Failed to write response header: {s}", .{@errorName(err)});
+    };
+    _ = posix.write(connection, response_body) catch |err| {
+        std.log.err("Failed to write response body: {s}", .{@errorName(err)});
+    };
 
     std.log.info("Worker {d}: Sent response.", .{handle});
 }
