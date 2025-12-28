@@ -1,20 +1,19 @@
 const std = @import("std");
-const net = std.net;
 const mem = std.mem;
-const process = std.process;
 const posix = std.posix;
+const linux = std.os.linux;
 
 pub fn request_handler(
-    connection: i32,
+    connection: posix.pollfd,
     allocator: mem.Allocator,
 ) void {
-    defer posix.close(connection);
+    defer posix.close(connection.fd);
 
-    const handle = connection;
+    const handle = connection.fd;
 
     var buffer: [1024]u8 = undefined;
 
-    const read = posix.read(connection, &buffer) catch 0;
+    const read = posix.read(connection.fd, &buffer) catch 0;
     if (read == 0) {
         // closed = true;
         return;
@@ -39,10 +38,10 @@ pub fn request_handler(
     ) catch @panic("OOM: response header");
     defer allocator.free(response_header);
 
-    _ = posix.write(connection, response_header) catch |err| {
+    _ = posix.write(connection.fd, response_header) catch |err| {
         std.log.err("Failed to write response header: {s}", .{@errorName(err)});
     };
-    _ = posix.write(connection, response_body) catch |err| {
+    _ = posix.write(connection.fd, response_body) catch |err| {
         std.log.err("Failed to write response body: {s}", .{@errorName(err)});
     };
 

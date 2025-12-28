@@ -1,7 +1,5 @@
 const std = @import("std");
 const net = std.net;
-const mem = std.mem;
-const process = std.process;
 const posix = std.posix;
 const zactus = @import("zactus.zig");
 
@@ -69,7 +67,7 @@ pub fn main() !void {
             if (revents & posix.POLL.IN == posix.POLL.IN) {
                 pool.spawn(
                     zactus.request_handler,
-                    .{ polled.fd, allocator },
+                    .{ polled, allocator },
                 ) catch |err| {
                     std.log.err("Failed to spawn request handler: {s}", .{@errorName(err)});
                 };

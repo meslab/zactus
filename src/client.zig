@@ -9,7 +9,6 @@ const Client = struct {
 
     fn _handle(self: Client) !void {
         const socket = self.socket;
-        defer posix.close(socket);
 
         std.debug.print("{} connected\n", .{self.address});
 
@@ -24,5 +23,14 @@ const Client = struct {
             const message = try reader.readMessage();
             std.debug.print("[{}] sent: {s}\n", .{ self.address, message });
         }
+    }
+
+    pub fn handle(self: Client) void {
+        defer posix.close(self.socket);
+        self._handle() catch |err| switch (err) {
+            error.Closed => {},
+            error.WouldBlock => {},
+            else => std.debug.print("[{}] client handle error: {}\n", .{ self.address, err }),
+        };
     }
 };
