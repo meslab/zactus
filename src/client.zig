@@ -3,7 +3,7 @@ const posix = std.posix;
 const net = std.net;
 const Reader = @import("reader.zig");
 
-const Client = struct {
+pub const Client = struct {
     socket: posix.socket_t,
     address: net.Address,
 
@@ -34,3 +34,18 @@ const Client = struct {
         };
     }
 };
+
+test "default address" {
+    const address = try net.Address.parseIp("0.0.0.0", 8080);
+    try std.testing.expect(address.eql(address));
+}
+
+test "default client" {
+    const address = try net.Address.parseIp("0.0.0.0", 8080);
+    const protocol = posix.IPPROTO.TCP;
+    const tpe: u32 = posix.SOCK.STREAM | posix.SOCK.NONBLOCK;
+    const socket = try posix.socket(address.any.family, tpe, protocol);
+    defer posix.close(socket);
+    const client = Client{ .socket = socket, .address = address };
+    try std.testing.expect(client.address.eql(address));
+}
