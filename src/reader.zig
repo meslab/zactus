@@ -66,3 +66,14 @@ const Reader = struct {
         self.position = unprocessed.len;
     }
 };
+
+test "default reader" {
+    const address = try std.net.Address.parseIp("0.0.0.0", 8080);
+    const protocol = posix.IPPROTO.TCP;
+    const socket_flags: u32 = posix.SOCK.STREAM | posix.SOCK.NONBLOCK;
+    const socket = try posix.socket(address.any.family, socket_flags, protocol);
+    defer posix.close(socket);
+    var buffer: [1024]u8 = undefined;
+    const reader = Reader{ .buffer = &buffer, .start = 0, .position = 0, .socket = socket };
+    try std.testing.expect(reader.position == 0);
+}

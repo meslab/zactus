@@ -3,10 +3,10 @@ const net = std.net;
 const posix = std.posix;
 const zactus = @import("zactus.zig");
 
-const NUM_WORKERS: usize = 4;
 const PORT: usize = 8080;
 
 pub fn main() !void {
+    const NUM_WORKERS: usize = try std.Thread.getCpuCount();
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
@@ -23,8 +23,8 @@ pub fn main() !void {
 
     const address = try net.Address.parseIp("0.0.0.0", PORT);
     const protocol = posix.IPPROTO.TCP;
-    const tpe: u32 = posix.SOCK.STREAM | posix.SOCK.NONBLOCK;
-    const listener = try posix.socket(address.any.family, tpe, protocol);
+    const socket_flags: u32 = posix.SOCK.STREAM | posix.SOCK.NONBLOCK;
+    const listener = try posix.socket(address.any.family, socket_flags, protocol);
     defer posix.close(listener);
 
     try posix.setsockopt(listener, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));

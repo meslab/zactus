@@ -1,7 +1,8 @@
 const std = @import("std");
 const posix = std.posix;
 const net = std.net;
-const Reader = @import("reader.zig");
+const socket_reader = @import("reader.zig");
+const Reader = socket_reader.Reader;
 
 pub const Client = struct {
     socket: posix.socket_t,
@@ -17,7 +18,7 @@ pub const Client = struct {
         try posix.setsockopt(socket, posix.SOL.SOCKET, posix.SO.SNDTIMEO, &std.mem.toBytes(timeout));
 
         var buffer: [1024]u8 = undefined;
-        var reader = Reader.Reader{ .position = 0, .buffer = &buffer, .socket = socket };
+        var reader = Reader{ .position = 0, .buffer = &buffer, .socket = socket };
 
         while (true) {
             const message = try reader.readMessage();
@@ -43,8 +44,8 @@ test "default address" {
 test "default client" {
     const address = try net.Address.parseIp("0.0.0.0", 8080);
     const protocol = posix.IPPROTO.TCP;
-    const tpe: u32 = posix.SOCK.STREAM | posix.SOCK.NONBLOCK;
-    const socket = try posix.socket(address.any.family, tpe, protocol);
+    const socket_flags: u32 = posix.SOCK.STREAM | posix.SOCK.NONBLOCK;
+    const socket = try posix.socket(address.any.family, socket_flags, protocol);
     defer posix.close(socket);
     const client = Client{ .socket = socket, .address = address };
     try std.testing.expect(client.address.eql(address));
